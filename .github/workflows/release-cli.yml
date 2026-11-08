@@ -57,8 +57,23 @@ jobs:
       - uses: ./.github/actions/frontend-bg
         with:
           phase: wait
-      - name: Build actual release executable
+      - name: Ensure the Windows Tauri CLI binary
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+          if node -e "require('@tauri-apps/cli-win32-x64-msvc')" 2>/dev/null; then exit 0; fi
+          CLI_VERSION="$(node -p "require('./node_modules/@tauri-apps/cli/package.json').version")"
+          curl -fLsS "https://registry.npmjs.org/@tauri-apps/cli-win32-x64-msvc/-/cli-win32-x64-msvc-${CLI_VERSION}.tgz" -o cli-win32.tgz
+          mkdir -p node_modules/@tauri-apps/cli-win32-x64-msvc
+          tar -xzf cli-win32.tgz -C node_modules/@tauri-apps/cli-win32-x64-msvc --strip-components=1
+          node -e "require('@tauri-apps/cli-win32-x64-msvc')"
+      - name: Build actual release executable (Linux)
+        if: runner.os != 'Windows'
         run: cargo build --release --locked --manifest-path src-tauri/Cargo.toml
+      - name: Build actual release executable (Windows)
+        if: runner.os == 'Windows'
+        run: npm run tauri build -- --no-bundle -- --locked
       - name: Test release CLI with captured stdout and stderr
         shell: bash
         run: |

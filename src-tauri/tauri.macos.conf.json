@@ -1,0 +1,17 @@
+{
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "agy-switch",
+        "width": 1024,
+        "height": 700,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "transparent": false,
+        "backgroundColor": "#FAFBFC",
+        "visible": false
+      }
+    ]
+  }
+}
