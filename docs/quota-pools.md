@@ -41,10 +41,10 @@ cases are in `tests/fixtures/quota-pool-cases.json`.
 ## Data source and verification limits
 
 The account refresh uses `fetchAvailableModels` and `retrieveUserQuotaSummary`
-with the account's own OAuth token and project. Production
-(`cloudcode-pa.googleapis.com`) is queried before daily and sandbox endpoints:
-the latter can return HTTP 200 containing only the
-Claude/GPT group. Omitted groups stay omitted; results from different endpoint
+with the account's own OAuth token and project. The live daily endpoint
+(`daily-cloudcode-pa.googleapis.com`) is queried before production and sandbox endpoints,
+as it returns real-time live token consumption and fractional quota percentages (production
+returns full 100% placeholder summaries). Omitted groups stay omitted; results from different endpoint
 environments are not combined into a fabricated complete observation.
 Summary permission failures retry the native user agent and an empty project
 payload before falling back. Malformed or empty responses also try the next

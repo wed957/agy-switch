@@ -108,6 +108,22 @@ export const MODEL_CONFIG: Record<string, ModelConfig> = {
         group: 'Gemini 3',
         tags: ['flash', 'low'],
     },
+    'gemini-3.8-flash-tiered': {
+        label: 'Gemini 3.8 Flash Tiered',
+        shortLabel: 'G3.8 Tiered',
+        protectedKey: 'gemini-flash',
+        Icon: Gemini.Color,
+        group: 'Gemini 3',
+        tags: ['flash', 'tiered'],
+    },
+    'gemini-4-argon': {
+        label: 'Gemini 4 Argon',
+        shortLabel: 'G4 Argon',
+        protectedKey: 'gemini-argon',
+        Icon: Gemini.Color,
+        group: 'Gemini 4',
+        tags: ['argon'],
+    },
     'gemini-3.7-flash-high': {
         label: 'Gemini 3.7 Flash (High)',
         shortLabel: 'G3.7 Flash',

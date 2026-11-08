@@ -32,6 +32,10 @@ const DEFAULT_MODEL_LABELS: Record<string, string> = {
     'gemini-3.8-flash-high': 'Gemini 3.8 Flash (High)',
     'gemini-3.8-flash-medium': 'Gemini 3.8 Flash (Medium)',
     'gemini-3.8-flash-low': 'Gemini 3.8 Flash (Low)',
+    'gemini-3.8-flash-tiered': 'Gemini 3.8 Flash Tiered',
+    'gemini-4-argon': 'Gemini 4 Argon',
+    'gemini-4-argon-high': 'Gemini 4 Argon (High)',
+    'gemini-4-argon-thinking': 'Gemini 4 Argon (Thinking)',
     'gemini-3.7-flash-high': 'Gemini 3.7 Flash (High)',
     'gemini-3.7-flash': 'Gemini 3.7 Flash',
     'gemini-3.7-flash-tiered': 'Gemini 3.7 Flash Tiered',
@@ -109,6 +113,9 @@ export function getCanonicalModelKey(rawId: string): string {
     if (id.includes('claude') && id.includes('sonnet')) {
         return 'claude-sonnet-4-6';
     }
+    if (id.includes('argon')) {
+        return 'gemini-4-argon';
+    }
     if (id.includes('gpt-oss')) {
         return 'gpt-oss-120b';
     }
@@ -125,6 +132,7 @@ export function getCanonicalModelDisplayName(keyOrRawId: string): string {
     const canon = getCanonicalModelKey(keyOrRawId);
     const knownLabels: Record<string, string> = {
         'gemini-3.8-flash': 'Gemini 3.8 Flash',
+        'gemini-4-argon': 'Gemini 4 Argon',
         'gemini-3.1-pro': 'Gemini 3.1 Pro',
         'gemini-3.7-flash': 'Gemini 3.7 Flash',
         'gemini-3.6-flash': 'Gemini 3.6 Flash',

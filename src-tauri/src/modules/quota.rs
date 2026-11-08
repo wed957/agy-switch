@@ -3,17 +3,17 @@ use rquest;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-// Prefer the production model catalog and fall back for endpoint availability.
+// Prefer the daily endpoint as it serves live token usage and fractional quota data; production serves as fallback.
 const QUOTA_API_ENDPOINTS: [&str; 3] = [
-    "https://cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels",
     "https://daily-cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels",
+    "https://cloudcode-pa.googleapis.com/v1internal:fetchAvailableModels",
     "https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal:fetchAvailableModels",
 ];
 
-// Production serves the complete shared quota; daily can return HTTP 200 with only 3p.
+// Query daily first as it serves live token usage and fractional quota data; production serves as fallback.
 const QUOTA_SUMMARY_ENDPOINTS: [&str; 3] = [
-    "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
     "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
+    "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
     "https://daily-cloudcode-pa.sandbox.googleapis.com/v1internal:retrieveUserQuotaSummary",
 ];
 
@@ -445,8 +445,9 @@ async fn fetch_quota_summary_from_endpoints(
         .filter(|pid| !pid.is_empty())
         .unwrap_or("aicode-consumers");
     let primary_payload = json!({ "project": default_project });
+    let mut partial_fallback: Option<Vec<crate::models::quota::QuotaGroup>> = None;
 
-    for ep_url in endpoints {
+    for (ep_idx, ep_url) in endpoints.iter().enumerate() {
         let attempts = [
             (
                 user_agent,
@@ -520,6 +521,17 @@ async fn fetch_quota_summary_from_endpoints(
                         .collect();
 
                     if groups.iter().all(|g| g.buckets.is_empty()) { break; }
+                    let has_gemini = groups.iter().any(|g| g.display_name.to_ascii_lowercase().contains("gemini"));
+                    if !has_gemini && ep_idx + 1 < endpoints.len() {
+                        crate::modules::logger::log_warn(&format!(
+                            "QuotaSummary API {} returned response without Gemini group, trying next endpoint",
+                            ep_url
+                        ));
+                        if partial_fallback.is_none() {
+                            partial_fallback = Some(groups);
+                        }
+                        break;
+                    }
                     tracing::debug!("[{}] QuotaSummary fetched {} groups", email, groups.len());
                     return Some(groups);
                 }
@@ -534,7 +546,7 @@ async fn fetch_quota_summary_from_endpoints(
         }
     }
 
-    None
+    partial_fallback
 }
 
 /// Retain the primary model observation when no matching pool was reported.
@@ -821,6 +833,6 @@ mod tests {
     }
     #[test]
     fn production_summary_precedes_successful_but_incomplete_daily_endpoints() {
-        assert_eq!(QUOTA_SUMMARY_ENDPOINTS[0], "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary");
+        assert_eq!(QUOTA_SUMMARY_ENDPOINTS[0], "https://daily-cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary");
     }
 }

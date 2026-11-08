@@ -66,16 +66,22 @@ pub async fn get_api_pricing() -> Result<ApiPricingSnapshot, String> {
         Err(error) => warnings.push(format!("Google Agent Platform 价格页：{}", error)),
     }
 
+    let has_parsed_prices = !prices.is_empty();
     let mut unique_prices = BTreeMap::new();
+    // Pre-populate with builtin fallback prices so essential models are always priced
+    for fallback in builtin_fallback_prices() {
+        unique_prices.insert(fallback.model.to_ascii_lowercase(), fallback);
+    }
+    // Overwrite with live prices from official page
     for price in prices {
         unique_prices.insert(price.model.to_ascii_lowercase(), price);
     }
-    let prices: Vec<ApiPricing> = unique_prices.into_values().collect();
+    let merged_prices: Vec<ApiPricing> = unique_prices.into_values().collect();
 
-    if !prices.is_empty() {
+    if has_parsed_prices {
         let snapshot = ApiPricingSnapshot {
             parser_revision: PARSER_REVISION,
-            prices,
+            prices: merged_prices,
             fetched_at: now,
             stale: false,
             source: "Google Gemini API + Google Agent Platform 官方价格".to_string(),
@@ -97,16 +103,40 @@ pub async fn get_api_pricing() -> Result<ApiPricingSnapshot, String> {
 
     Ok(ApiPricingSnapshot {
         parser_revision: PARSER_REVISION,
-        prices: Vec::new(),
+        prices: builtin_fallback_prices(),
         fetched_at: now,
         stale: true,
         source: "内置价格兜底".to_string(),
         warning: Some(if warnings.is_empty() {
-            "官方价格页暂时没有解析到可用价格".to_string()
+            "官方价格页暂时没有解析到可用价格，使用内置价格兜底".to_string()
         } else {
             warnings.join("；")
         }),
     })
+}
+
+pub fn builtin_fallback_prices() -> Vec<ApiPricing> {
+    vec![
+        ApiPricing { model: "gemini-2.5-flash".into(), input: 0.3, output: 2.5, cached: 0.03 },
+        ApiPricing { model: "gemini-2.5-flash-lite".into(), input: 0.1, output: 0.4, cached: 0.01 },
+        ApiPricing { model: "gemini-2.5-pro".into(), input: 1.25, output: 10.0, cached: 0.125 },
+        ApiPricing { model: "gemini-3-flash".into(), input: 0.5, output: 3.0, cached: 0.05 },
+        ApiPricing { model: "gemini-3.1-flash-lite".into(), input: 0.25, output: 1.5, cached: 0.025 },
+        ApiPricing { model: "gemini-3.1-flash-image".into(), input: 0.5, output: 60.0, cached: 0.0 },
+        ApiPricing { model: "gemini-3.1-pro".into(), input: 2.0, output: 12.0, cached: 0.2 },
+        ApiPricing { model: "gemini-3.5-flash".into(), input: 0.5, output: 3.0, cached: 0.05 },
+        ApiPricing { model: "gemini-3.5-flash-lite".into(), input: 0.3, output: 2.5, cached: 0.03 },
+        ApiPricing { model: "gemini-3.6-flash".into(), input: 0.75, output: 3.75, cached: 0.075 },
+        ApiPricing { model: "gemini-3.7-flash".into(), input: 0.75, output: 3.75, cached: 0.075 },
+        ApiPricing { model: "gemini-3.8-flash".into(), input: 0.75, output: 3.75, cached: 0.075 },
+        ApiPricing { model: "gemini-4-argon".into(), input: 2.0, output: 10.0, cached: 0.1 },
+        ApiPricing { model: "claude-sonnet-4-6".into(), input: 3.0, output: 15.0, cached: 0.3 },
+        ApiPricing { model: "claude-opus-4-6".into(), input: 5.0, output: 25.0, cached: 0.5 },
+        ApiPricing { model: "claude-sonnet-4-5".into(), input: 3.0, output: 15.0, cached: 0.3 },
+        ApiPricing { model: "claude-haiku-4-5".into(), input: 0.8, output: 4.0, cached: 0.08 },
+        ApiPricing { model: "gpt-oss-120b".into(), input: 0.5, output: 2.0, cached: 0.05 },
+        ApiPricing { model: "gpt-oss-120b-medium".into(), input: 0.5, output: 2.0, cached: 0.05 },
+    ]
 }
 
 async fn fetch_page(client: &reqwest::Client, url: &str) -> Result<String, String> {

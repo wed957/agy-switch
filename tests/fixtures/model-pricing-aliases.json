@@ -33,5 +33,8 @@
   { "model": "gemini-3.8-flash-exp-b", "prices": ["gemini-3.8-flash", "gemini-3.8-flash-exp-b"], "expected": "gemini-3.8-flash-exp-b" },
   { "model": "Gemini 3 Flash (High)", "prices": ["gemini-3-flash-preview"], "expected": "gemini-3-flash-preview" },
   { "model": "gemini-3.8-flash-exp-b", "prices": ["gemini-3.8-flash-preview-01", "gemini-3.8-flash-preview-02"], "expected": null },
-  { "model": "Gemini 3.8 Flash (High)", "prices": ["gemini-3.8-flash", "gemini-3.8-flash"], "expected": null }
+  { "model": "Gemini 3.8 Flash (High)", "prices": ["gemini-3.8-flash", "gemini-3.8-flash"], "expected": null },
+  { "model": "gemini-3.8-flash-tiered", "prices": ["gemini-3.8-flash"], "expected": "gemini-3.8-flash" },
+  { "model": "gemini-4-argon-high", "prices": ["gemini-4-argon"], "expected": "gemini-4-argon" },
+  { "model": "gemini-4-argon-thinking", "prices": ["gemini-4-argon"], "expected": "gemini-4-argon" }
 ]
