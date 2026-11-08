@@ -580,6 +580,8 @@ fn web_dashboard(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, String>
                     .skip_taskbar(true)
                     .always_on_top(true)
                     .shadow(true);
+            #[cfg(target_os = "windows")]
+            let builder = builder.transparent(true);
             builder.build().map_err(|e| e.to_string())
         }
     }
