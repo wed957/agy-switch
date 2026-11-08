@@ -8,7 +8,7 @@
         "height": 700,
         "transparent": false,
         "decorations": true,
-        "visible": false
+        "visible": true
       }
     ]
   },
