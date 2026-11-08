@@ -515,6 +515,19 @@ function Dashboard() {
             + point.cached_tokens * costPerPoint.cached,
         [costPerPoint],
     );
+
+    const costBreakdown = useMemo(() => {
+        let uncached = 0;
+        let cached = 0;
+        for (const model of modelsForRange) {
+            const p = findModelPricing(model.model, pricing);
+            if (p) {
+                uncached += (model.input_tokens * p.input + model.output_tokens * p.output) / 1_000_000;
+                cached += (model.cached_tokens * p.cached) / 1_000_000;
+            }
+        }
+        return { uncached, cached };
+    }, [modelsForRange, pricing]);
     const pricingLabel = pricing
         ? pricing.stale
             ? t('local_dashboard.pricing_local_cache')
@@ -539,14 +552,46 @@ function Dashboard() {
             : t('local_dashboard.waiting_scan');
 
     const cards: Record<DashboardCardId, ReactElement> = {
-        total_tokens: (<TokenCard cardId="total_tokens" label={t('local_dashboard.total_tokens', { range: rangeLabels[range] })} value={totals.total_tokens} hint={t('local_dashboard.total_tokens_hint')} color="bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300" icon={BarChart3} locale={locale} />),
-        input_tokens: (<TokenCard cardId="input_tokens" label={t('local_dashboard.input_tokens')} value={totals.input_tokens} hint={t('local_dashboard.input_tokens_hint')} color="bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-300" icon={MessageSquare} locale={locale} />),
-        output_tokens: (<TokenCard cardId="output_tokens" label={t('local_dashboard.output_tokens')} value={totals.output_tokens} hint={t('local_dashboard.output_tokens_hint')} color="bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-300" icon={Cpu} locale={locale} />),
+        total_tokens: (<TokenCard cardId="total_tokens"
+            label={t('local_dashboard.total_tokens', { range: rangeLabels[range] })}
+            value={totals.total_tokens}
+            detail={<span className="text-[10px] text-gray-500 dark:text-gray-400">
+                {formatTokens(totals.input_tokens, locale)} 未缓存 + {formatTokens(totals.cached_tokens, locale)} 缓存 + {formatTokens(totals.output_tokens, locale)} 输出
+            </span>}
+            hint={t('local_dashboard.total_tokens_hint')}
+            color="bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-300"
+            icon={BarChart3}
+            locale={locale}
+        />),
+        input_tokens: (<TokenCard cardId="input_tokens"
+            label={t('local_dashboard.input_tokens')}
+            value={totals.input_tokens}
+            detail={<span className="text-[10px] text-gray-500 dark:text-gray-400">
+                未命中缓存输入 · 缓存 {formatTokens(totals.cached_tokens, locale)}
+            </span>}
+            hint={t('local_dashboard.input_tokens_hint')}
+            color="bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-300"
+            icon={MessageSquare}
+            locale={locale}
+        />),
+        output_tokens: (<TokenCard cardId="output_tokens"
+            label={t('local_dashboard.output_tokens')}
+            value={totals.output_tokens}
+            detail={<span className="text-[10px] text-gray-500 dark:text-gray-400">
+                模型生成（含正文与思考 Token）
+            </span>}
+            hint={t('local_dashboard.output_tokens_hint')}
+            color="bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-300"
+            icon={Cpu}
+            locale={locale}
+        />),
         cache_hit_rate: (<TokenCard cardId="cache_hit_rate"
             label={t('local_dashboard.cache_hit_rate')}
             value={cacheHitRate}
             displayValue={`${cacheHitRate.toFixed(1)}%`}
-            detail={t('local_dashboard.cache_hit_rate_detail')}
+            detail={<span className="text-[10px] text-gray-500 dark:text-gray-400">
+                已缓存 {formatTokens(totals.cached_tokens, locale)} Token
+            </span>}
             hint={t('local_dashboard.cache_hit_rate_hint')}
             color="bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300"
             icon={Database}
@@ -556,9 +601,16 @@ function Dashboard() {
             label={t('local_dashboard.api_cost')}
             value={apiCost.usd}
             displayValue={apiCost.unpricedModels && !apiCost.pricedModels ? t('local_dashboard.unpriced') : formatUsd(apiCost.usd)}
-            detail={<div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                <span>{t('local_dashboard.api_requests', { requestCount: formatTokens(totals.request_count, locale) })}</span>
-                {apiCost.unpricedModels > 0 && <span className="text-amber-700 dark:text-amber-400">{t('local_dashboard.unpriced_count', { count: apiCost.unpricedModels })}</span>}
+            detail={<div className="flex flex-col gap-0.5 text-[10px] text-gray-500 dark:text-gray-400">
+                <div className="flex flex-wrap items-center gap-x-2">
+                    <span>{t('local_dashboard.api_requests', { requestCount: formatTokens(totals.request_count, locale) })}</span>
+                    {apiCost.unpricedModels > 0 && <span className="text-amber-700 dark:text-amber-400">{t('local_dashboard.unpriced_count', { count: apiCost.unpricedModels })}</span>}
+                </div>
+                {apiCost.usd > 0 && (
+                    <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                        未缓存 ${(costBreakdown.uncached).toFixed(2)} · 缓存 ${(costBreakdown.cached).toFixed(2)}
+                    </div>
+                )}
             </div>}
             hint={`${pricingLabel}\n${t('local_dashboard.api_cost_hint')}`}
             color="bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-300"
@@ -609,17 +661,28 @@ function Dashboard() {
             locale={locale}
         >
             <div className="space-y-1">
+                {overview?.currentAccount && (
+                    <div className="rounded bg-orange-100/70 p-1 text-[10px] text-orange-900 dark:bg-orange-950/50 dark:text-orange-200">
+                        <div className="flex justify-between items-center font-medium">
+                            <span>当前使用账号已用:</span>
+                            <span>
+                                5h {overview.currentAccount.windows['5h'].gemini !== null ? `${Math.round(overview.currentAccount.windows['5h'].gemini)}%` : '—'} · 
+                                周 {overview.currentAccount.windows['weekly'].gemini !== null ? `${Math.round(overview.currentAccount.windows['weekly'].gemini)}%` : '—'}
+                            </span>
+                        </div>
+                    </div>
+                )}
                 {(['5h', 'weekly', ...(overview?.argonWeekly.total ? ['argon' as const] : [])] as const).map(window => {
                     const used = (window === 'argon' ? overview?.argonWeekly.used : overview?.windows[window].used) ?? null;
-                    const label = t(`local_dashboard.quota_used_${window}`);
+                    const label = (window === 'argon' ? t('local_dashboard.quota_used_argon') : window === '5h' ? '全账号均值 5小时' : '全账号均值 每周');
                     const tone = quotaTone(used === null ? null : 100 - used, quotaPreferences);
                     const fill = { healthy: 'bg-emerald-500', warning: 'bg-amber-500', critical: 'bg-red-500', unknown: '' }[tone];
                     return <div key={window} data-quota-window={window}>
                         <div className="flex flex-wrap items-baseline justify-between gap-x-2">
-                            <span className="text-xs leading-4 text-gray-600 dark:text-gray-300">{label}</span>
-                            <span className="text-sm font-semibold leading-4 tabular-nums text-gray-900 dark:text-base-content">{quotaDisplay(used)}</span>
+                            <span className="text-[11px] leading-4 text-gray-600 dark:text-gray-300">{label}</span>
+                            <span className="text-xs font-semibold leading-4 tabular-nums text-gray-900 dark:text-base-content">{quotaDisplay(used)}</span>
                         </div>
-                        <div className="mt-1 h-1 overflow-hidden rounded-full bg-gray-100 text-gray-400 dark:bg-base-300 dark:text-gray-500"
+                        <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-gray-100 text-gray-400 dark:bg-base-300 dark:text-gray-500"
                             role={used === null ? 'img' : 'meter'} aria-label={used === null ? `${label}: ${overviewUnavailable}` : label}
                             aria-valuemin={used === null ? undefined : 0} aria-valuemax={used === null ? undefined : 100}
                             aria-valuenow={used ?? undefined} aria-valuetext={used === null ? undefined : quotaDisplay(used)}>
@@ -635,7 +698,11 @@ function Dashboard() {
             value={averageInput ?? 0}
             displayValue={averageInput === null ? '—' : undefined}
             unit={averageInput === null ? undefined : 'Token'}
-            detail={averageInput === null ? t('local_dashboard.average_input_empty') : t('local_dashboard.average_input_detail', { requestCount: formatTokens(totals.request_count, locale) })}
+            detail={averageInput === null ? t('local_dashboard.average_input_empty') : (
+                <span className="text-[10px] text-gray-500 dark:text-gray-400">
+                    单次请求：未缓存 {formatTokens(Math.round(totals.input_tokens / (totals.request_count || 1)), locale)} + 缓存 {formatTokens(Math.round(totals.cached_tokens / (totals.request_count || 1)), locale)}
+                </span>
+            )}
             hint={t('local_dashboard.average_input_hint')}
             color="bg-violet-50 text-violet-600 dark:bg-violet-900/20 dark:text-violet-300"
             icon={Layers3}

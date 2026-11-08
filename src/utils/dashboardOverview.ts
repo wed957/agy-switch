@@ -22,5 +22,18 @@ export function dashboardOverview(snapshot: DashboardSnapshot, preferences: Menu
         const summary = aggregateMenuBar(visible, preferences.quota_scope, window, threshold);
         return [window, { ...summary, used: summary.remaining === null ? null : 100 - summary.remaining }];
     })) as Record<QuotaWindow, ReturnType<typeof aggregateMenuBar> & { used: number | null }>;
-    return { accounts, windows, threshold, argonWeekly: aggregateArgon(preferences.quota_scope === 'other' ? [] : visible) };
+    const currentView = views.find(v => v.account.id === snapshot.current_account_id);
+    const currentAccount = currentView ? {
+        windows: {
+            '5h': {
+                gemini: currentView.windows['5h'].gemini.remaining !== null ? 100 - currentView.windows['5h'].gemini.remaining : null,
+                other: currentView.windows['5h'].other.remaining !== null ? 100 - currentView.windows['5h'].other.remaining : null,
+            },
+            'weekly': {
+                gemini: currentView.windows['weekly'].gemini.remaining !== null ? 100 - currentView.windows['weekly'].gemini.remaining : null,
+                other: currentView.windows['weekly'].other.remaining !== null ? 100 - currentView.windows['weekly'].other.remaining : null,
+            }
+        }
+    } : null;
+    return { accounts, windows, threshold, argonWeekly: aggregateArgon(preferences.quota_scope === 'other' ? [] : visible), currentAccount };
 }

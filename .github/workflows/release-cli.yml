@@ -81,3 +81,13 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./scripts/test-windows-cli.ps1 -Binary ./src-tauri/target/release/agy-switch-desktop.exe
+
+      - name: Upload Windows release binaries
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: agy-switch-windows-x64
+          path: |
+            src-tauri/target/release/agy-switch.exe
+            src-tauri/target/release/agy-switch-desktop.exe
+          if-no-files-found: error
