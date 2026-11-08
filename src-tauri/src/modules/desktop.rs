@@ -570,6 +570,10 @@ fn web_dashboard(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, String>
     match app.get_webview_window(DASHBOARD_LABEL) {
         Some(window) => Ok(window),
         None => {
+            // On Windows, enabling shadow on an undecorated window adds an opaque
+            // Win32 non-client shadow frame (manifesting as white borders). Disable
+            // native shadow on Windows to ensure pixel-perfect transparency.
+            let shadow = !cfg!(target_os = "windows");
             let builder =
                 WebviewWindowBuilder::new(app, DASHBOARD_LABEL, WebviewUrl::App("menubar".into()))
                     .title("Antigravity Quick Dashboard")
@@ -579,13 +583,11 @@ fn web_dashboard(app: &tauri::AppHandle) -> Result<tauri::WebviewWindow, String>
                     .visible(false)
                     .skip_taskbar(true)
                     .always_on_top(true)
-                    .shadow(true);
-            #[cfg(target_os = "windows")]
-            let builder = builder.transparent(true);
+                    .transparent(true)
+                    .shadow(shadow);
             builder.build().map_err(|e| e.to_string())
         }
     }
-
 }
 
 #[tauri::command]
