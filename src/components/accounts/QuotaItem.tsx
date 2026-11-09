@@ -67,7 +67,14 @@ export function QuotaItem({ label, title, percentage, resetTime, windowLabel, is
 
                 {/* Reset Time */}
                 <div className="w-[58px] flex justify-start shrink-0">
-                    {resetTime ? (
+                    {percentage !== null && Math.round(percentage) >= 100 ? (
+                        <span
+                            className="flex items-center gap-0.5 font-medium text-emerald-600 dark:text-emerald-400 truncate"
+                            title={resetTime ? `${t('accounts.quota_ready', '就绪')} (${formatTimeRemaining(resetTime)})` : undefined}
+                        >
+                            {t('accounts.quota_ready', '就绪')}
+                        </span>
+                    ) : resetTime ? (
                         <span className="flex items-center gap-0.5 font-medium text-amber-600 dark:text-amber-400 truncate">
                             <Clock className="w-2.5 h-2.5 shrink-0" />
                             {formatTimeRemaining(resetTime)}

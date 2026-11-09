@@ -212,6 +212,7 @@
     "weekly_scope_gemini": "Covers Gemini 3.8, 3.7, 3.1, 2.5",
     "weekly_scope_claude": "Covers Claude Opus, Sonnet, GPT-OSS",
     "quota_protected": "Protected",
+    "quota_ready": "Ready",
     "display_models": "Display Models",
     "display_models_title": "Customize models shown on cards and tables",
     "all_models_badge": "All",
@@ -274,6 +275,7 @@
     "table": {
       "email": "Email",
       "quota": "Model Quota",
+      "quota_5h": "5-Hour Quota",
       "weekly_quota": "Weekly Quota",
       "last_used": "Last Used",
       "actions": "Actions",

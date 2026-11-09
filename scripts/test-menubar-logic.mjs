@@ -17,6 +17,7 @@ const source = ts.transpileModule(
 const {
   compactQuotaGroups,
   weeklyQuotaItems,
+  poolQuotaItems,
   observedPercentage,
   observedModelPercentage,
   effectiveModelQuota,
@@ -86,6 +87,39 @@ test('account weekly labels and knownness preserve a dedicated Argon pool', () =
   assert.equal(weeklyQuotaItems(q)[0].percentage,null);
   q.quota_groups[0].buckets[0].remaining_fraction_known=true;
   assert.equal(weeklyQuotaItems(q)[0].percentage,0);
+});
+test('pool quota items symmetrically extract both Gemini and Claude pools across 5h and weekly', () => {
+  const q = {
+    quota_groups: [
+      {
+        display_name: 'Gemini Models',
+        buckets: [
+          { bucket_id: 'gemini-5h', window: '5h', remaining_fraction: 1, remaining_fraction_known: true, reset_time: '2026-11-09T15:00:00Z' },
+          { bucket_id: 'gemini-weekly', window: 'weekly', remaining_fraction: 0.73, remaining_fraction_known: true, reset_time: '2026-11-14T00:00:00Z' },
+        ],
+      },
+      {
+        display_name: 'Claude and GPT models',
+        buckets: [
+          { bucket_id: '3p-5h', window: '5h', remaining_fraction: 0.8, remaining_fraction_known: true, reset_time: '2026-11-09T15:00:00Z' },
+          { bucket_id: '3p-weekly', window: 'weekly', remaining_fraction: 1, remaining_fraction_known: true, reset_time: '2026-11-16T00:00:00Z' },
+        ],
+      },
+    ],
+  };
+  const items5h = poolQuotaItems(q, '5h');
+  assert.equal(items5h.length, 2);
+  assert.equal(items5h[0].title, 'Gemini');
+  assert.equal(items5h[0].percentage, 100);
+  assert.equal(items5h[1].title, 'Claude / GPT');
+  assert.equal(items5h[1].percentage, 80);
+
+  const itemsWeekly = poolQuotaItems(q, 'weekly');
+  assert.equal(itemsWeekly.length, 2);
+  assert.equal(itemsWeekly[0].title, 'Gemini');
+  assert.equal(itemsWeekly[0].percentage, 73);
+  assert.equal(itemsWeekly[1].title, 'Claude / GPT');
+  assert.equal(itemsWeekly[1].percentage, 100);
 });
 test('unknown fused model quota cannot expose an old percentage', () => {
   assert.equal(observedModelPercentage({name:'gemini-4-argon-high',percentage:100,percentage_known:false,reset_time:''}),null);

@@ -1,4 +1,4 @@
-import { weeklyQuotaItems, modelQuotaForWindow } from '../../utils/menuBarQuota';
+import { poolQuotaItems, modelQuotaForWindow } from '../../utils/menuBarQuota';
 import { useMemo } from 'react';
 import { Download, ArrowRightLeft, RefreshCw, Trash2, Lock, Ban, Diamond, Gem, Circle, Sparkles, Tag, Clock, GripVertical, BrainCircuit, CheckCircle2 } from 'lucide-react';
 import { Account } from '../../types/account';
@@ -60,10 +60,10 @@ function AccountCard({
         return getDisplayQuotaModels(account.quota?.models, config?.pinned_quota_models?.models);
     }, [config?.pinned_quota_models?.models, account.quota?.models]);
 
-    // 解析周配额项 (当处于 weekly 视图时)
-    const weeklyItems = useMemo(() => {
-        if (quotaWindow !== 'weekly') return [];
-        return weeklyQuotaItems(account.quota).map(item => ({ ...item,
+    // 解析统一配额池项 (无论 5h 还是 weekly，保持双池对称对齐展示)
+    const poolItems = useMemo(() => {
+        const window = quotaWindow || '5h';
+        return poolQuotaItems(account.quota, window).map(item => ({ ...item,
             poolBadge: item.shared ? t('accounts.shared_pool') : t('accounts.dedicated_pool'),
             Icon: item.isClaude ? BrainCircuit : Sparkles,
         }));
@@ -203,9 +203,9 @@ function AccountCard({
                             </span>
                         </div>
                     </div>
-                ) : quotaWindow === 'weekly' && weeklyItems.length > 0 ? (
+                ) : poolItems.length > 0 ? (
                     <div className="grid grid-cols-1 gap-2 content-start my-auto">
-                        {weeklyItems.map((item) => (
+                        {poolItems.map((item) => (
                             <QuotaItem
                                 key={item.id}
                                 label={

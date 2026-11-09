@@ -212,6 +212,7 @@
     "weekly_scope_gemini": "涵盖 Gemini 3.8、3.7、3.1、2.5",
     "weekly_scope_claude": "涵盖 Claude Opus、Sonnet、GPT-OSS",
     "quota_protected": "受保护",
+    "quota_ready": "就绪",
     "display_models": "展示模型",
     "display_models_title": "自定义卡片与列表中要展示的模型",
     "all_models_badge": "全部",
@@ -274,6 +275,7 @@
     "table": {
       "email": "邮箱",
       "quota": "模型配额",
+      "quota_5h": "5小时配额",
       "weekly_quota": "周配额",
       "last_used": "最后使用",
       "actions": "操作",

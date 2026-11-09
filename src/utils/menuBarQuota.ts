@@ -1,16 +1,37 @@
 import type { Account, QuotaData, ModelQuota } from "../types/account";
 import { quotaPoolKind, type QuotaPoolKind } from './accountDashboard';
 
-/** Shared by account cards and tables; preserve dedicated and future pool names. */
-export function weeklyQuotaItems(quota?: QuotaData) {
+/**
+ * 统一解析配额池项 (根据 5h 或 weekly 窗口提取配额组中的各个 bucket)
+ * 确保 Gemini 共享池与 Claude/GPT 共享池在两个时间维度下保持对称展示
+ */
+export function poolQuotaItems(quota?: QuotaData, window: '5h' | 'weekly' = 'weekly') {
   return (quota?.quota_groups || []).flatMap(group => group.buckets
-    .filter(b => b.window.trim().toLowerCase() === 'weekly' || b.bucket_id.toLowerCase().endsWith('-weekly'))
+    .filter(b => {
+      const w = b.window.trim().toLowerCase();
+      const bid = b.bucket_id.toLowerCase();
+      if (window === 'weekly') {
+        return w === 'weekly' || bid.endsWith('-weekly');
+      } else {
+        return w === '5h' || bid.endsWith('-5h');
+      }
+    })
     .map(b => {
       const kind = quotaPoolKind(b.bucket_id, group.display_name);
-      return { id: `${group.display_name}-${b.bucket_id}`, title: kind === 'argon' ? 'Gemini 4 Argon' : kind === 'gemini' ? 'Gemini' : kind === 'other' ? 'Claude / GPT' : group.display_name || b.display_name || b.bucket_id,
-        shared: kind === 'gemini' || kind === 'other', isClaude: kind === 'other',
-        percentage: observedPercentage(b.remaining_fraction, b.remaining_fraction_known, true), resetTime: b.reset_time };
+      return {
+        id: `${group.display_name}-${b.bucket_id}`,
+        title: kind === 'argon' ? 'Gemini 4 Argon' : kind === 'gemini' ? 'Gemini' : kind === 'other' ? 'Claude / GPT' : group.display_name || b.display_name || b.bucket_id,
+        shared: kind === 'gemini' || kind === 'other',
+        isClaude: kind === 'other',
+        percentage: observedPercentage(b.remaining_fraction, b.remaining_fraction_known, true),
+        resetTime: b.reset_time,
+      };
     }));
+}
+
+/** Shared by account cards and tables; preserve dedicated and future pool names. */
+export function weeklyQuotaItems(quota?: QuotaData) {
+  return poolQuotaItems(quota, 'weekly');
 }
 
 export interface CompactQuotaRow {

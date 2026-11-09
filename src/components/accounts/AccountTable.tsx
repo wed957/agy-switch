@@ -1,4 +1,4 @@
-import { weeklyQuotaItems, modelQuotaForWindow } from '../../utils/menuBarQuota';
+import { poolQuotaItems, modelQuotaForWindow } from '../../utils/menuBarQuota';
 /**
  * 账号表格组件
  * 支持拖拽排序功能，用户可以通过拖拽行来调整账号顺序
@@ -144,30 +144,27 @@ function isModelProtected(protectedModels: string[] | undefined, modelName: stri
  */
 function extractAccountResetTime(account: Account, quotaWindow?: '5h' | 'weekly'): number | null {
     let earliestTime: number | null = null;
-
-    if (quotaWindow === 'weekly') {
-        const groups = account.quota?.quota_groups || [];
-        for (const group of groups) {
-            for (const bucket of group.buckets || []) {
-                const isWeekly = bucket.window.toLowerCase().includes('week') || bucket.bucket_id.toLowerCase().includes('week');
-                if (isWeekly && bucket.reset_time) {
-                    const t = new Date(bucket.reset_time).getTime();
-                    if (!isNaN(t) && (earliestTime === null || t < earliestTime)) {
-                        earliestTime = t;
-                    }
-                }
-            }
-        }
-    } else {
-        // Sort by the displayed window, never by a fused weekly limit in the 5h view.
-        const models = account.quota?.models || [];
-        for (const model of models) {
-            const { resetTime } = modelQuotaForWindow(model, account.quota, quotaWindow);
-            if (resetTime) {
-                const t = new Date(resetTime).getTime();
+    const items = poolQuotaItems(account.quota, quotaWindow || '5h');
+    if (items.length > 0) {
+        for (const item of items) {
+            if (item.resetTime) {
+                const t = new Date(item.resetTime).getTime();
                 if (!isNaN(t) && (earliestTime === null || t < earliestTime)) {
                     earliestTime = t;
                 }
+            }
+        }
+        return earliestTime;
+    }
+
+    // fallback 到单模型模式
+    const models = account.quota?.models || [];
+    for (const model of models) {
+        const { resetTime } = modelQuotaForWindow(model, account.quota, quotaWindow);
+        if (resetTime) {
+            const t = new Date(resetTime).getTime();
+            if (!isNaN(t) && (earliestTime === null || t < earliestTime)) {
+                earliestTime = t;
             }
         }
     }
@@ -297,10 +294,10 @@ function AccountRowContent({
     const { config } = useConfigStore();
     const validationBlockedLabel = getValidationBlockedStatusLabel(account.validation_blocked_reason, t);
 
-    // 解析周配额项 (当处于 weekly 视图时)
-    const weeklyItems = useMemo(() => {
-        if (quotaWindow !== 'weekly') return [];
-        return weeklyQuotaItems(account.quota).map(item => ({ ...item,
+    // 解析统一配额池项 (无论 5h 还是 weekly，保持双池对称对齐展示)
+    const poolItems = useMemo(() => {
+        const window = quotaWindow || '5h';
+        return poolQuotaItems(account.quota, window).map(item => ({ ...item,
             poolBadge: item.shared ? t('accounts.shared_pool') : t('accounts.dedicated_pool'),
             Icon: item.isClaude ? BrainCircuit : Sparkles,
         }));
@@ -419,8 +416,8 @@ function AccountRowContent({
                     </div>
                 ) : (
                     <div className="flex flex-col gap-1.5 py-0.5 w-full">
-                        {quotaWindow === 'weekly' && weeklyItems.length > 0 ? (
-                            weeklyItems.map((item) => (
+                        {poolItems.length > 0 ? (
+                            poolItems.map((item) => (
                                 <QuotaItem
                                     key={item.id}
                                     label={
@@ -693,7 +690,7 @@ function AccountTable({
                                     )}
                                     title={t('accounts.table.sort_by_reset_time', '点击按配额重置时间排序')}
                                 >
-                                    <span>{quotaWindow === 'weekly' ? t('accounts.table.weekly_quota', '周配额') : t('accounts.table.quota')}</span>
+                                    <span>{quotaWindow === 'weekly' ? t('accounts.table.weekly_quota', '周配额') : t('accounts.table.quota_5h', '5小时配额')}</span>
                                     {sortConfig.key === 'reset_time' ? (
                                         sortConfig.direction === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" /> : <ArrowDown className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                                     ) : (
