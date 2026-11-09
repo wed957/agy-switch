@@ -50,7 +50,7 @@ This gallery shows macOS 4.9.0; later changes are described below and in the lin
 
 ## Installation
 
-Download the package for your platform from **[GitHub Releases](https://github.com/anglee0323/agy-switch/releases/latest)**. The current release is **4.10.14**. The application is called AntiGravity Switch; the repository and terminal command are `agy-switch`.
+Download the package for your platform from **[GitHub Releases](https://github.com/anglee0323/agy-switch/releases/latest)**. The current release is **4.10.15**. The application is called AntiGravity Switch; the repository and terminal command are `agy-switch`.
 
 | Platform | Desktop package | Terminal access |
 | --- | --- | --- |
@@ -90,7 +90,7 @@ For terminal use only, extract the **Windows x64 console ZIP**, open PowerShell 
 Download the **Linux AMD64 deb**, then install it using the actual filename:
 
 ```sh
-sudo apt install ./agy-switch-4.10.14-linux-amd64.deb
+sudo apt install ./agy-switch-4.10.15-linux-amd64.deb
 agy-switch-desktop       # desktop app
 agy-switch              # terminal dashboard
 ```

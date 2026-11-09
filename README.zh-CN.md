@@ -50,7 +50,7 @@ AntiGravity Switch 把你的 Antigravity 账号集中到一个地方：查看哪
 
 ## 安装
 
-从 **[GitHub Releases](https://github.com/anglee0323/agy-switch/releases/latest)** 下载对应平台的安装包，当前版本为 **4.10.14**。应用全名是 AntiGravity Switch，仓库和命令行使用 `agy-switch`。
+从 **[GitHub Releases](https://github.com/anglee0323/agy-switch/releases/latest)** 下载对应平台的安装包，当前版本为 **4.10.15**。应用全名是 AntiGravity Switch，仓库和命令行使用 `agy-switch`。
 
 | 平台 | 桌面安装方式 | 命令行入口 |
 | --- | --- | --- |
@@ -90,7 +90,7 @@ Homebrew 7 及以上版本在信任 tap 之前会拒绝加载第三方 cask。�
 下载 **Linux AMD64 deb**，使用实际文件名安装：
 
 ```sh
-sudo apt install ./agy-switch-4.10.14-linux-amd64.deb
+sudo apt install ./agy-switch-4.10.15-linux-amd64.deb
 agy-switch-desktop       # 桌面应用
 agy-switch              # 命令行看板
 ```
