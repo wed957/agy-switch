@@ -662,19 +662,50 @@ function Dashboard() {
         >
             <div className="space-y-1">
                 {overview?.currentAccount && (
-                    <div className="rounded bg-orange-100/70 p-1 text-[10px] text-orange-900 dark:bg-orange-950/50 dark:text-orange-200">
-                        <div className="flex justify-between items-center font-medium">
-                            <span>当前使用账号已用:</span>
-                            <span>
-                                5h {overview.currentAccount.windows['5h'].gemini !== null ? `${Math.round(overview.currentAccount.windows['5h'].gemini)}%` : '—'} · 
-                                周 {overview.currentAccount.windows['weekly'].gemini !== null ? `${Math.round(overview.currentAccount.windows['weekly'].gemini)}%` : '—'}
-                            </span>
+                    <div
+                        className="rounded-lg bg-gray-50/80 dark:bg-base-200/60 border border-gray-100 dark:border-base-200/80 px-2 py-1 text-[10px] text-gray-700 dark:text-gray-300 transition-colors"
+                        title={(() => {
+                            const acc = overview.currentAccount;
+                            const parts = [`当前账号: ${acc.email || ''}`];
+                            if (acc.windows['5h'].gemini !== null) {
+                                parts.push(`Gemini: 5h已用 ${Math.round(acc.windows['5h'].gemini)}% (剩 ${Math.round(acc.windows['5h'].geminiRemaining ?? (100 - acc.windows['5h'].gemini))}%), 周已用 ${acc.windows['weekly'].gemini !== null ? Math.round(acc.windows['weekly'].gemini) : 0}% (剩 ${Math.round(acc.windows['weekly'].geminiRemaining ?? 0)}%)`);
+                            }
+                            if (acc.windows['weekly'].other !== null) {
+                                parts.push(`Claude / GPT: 周已用 ${Math.round(acc.windows['weekly'].other)}% (剩 ${Math.round(acc.windows['weekly'].otherRemaining ?? (100 - acc.windows['weekly'].other))}%)`);
+                            }
+                            return parts.join('\n');
+                        })()}
+                    >
+                        <div className="flex justify-between items-center font-medium gap-1">
+                            <span className="truncate text-gray-500 dark:text-gray-400">{t('local_dashboard.current_account_used', '当前账号已用')}:</span>
+                            <div className="flex items-center gap-1.5 shrink-0 tabular-nums font-semibold text-gray-900 dark:text-base-content">
+                                {overview.currentAccount.windows['5h'].gemini !== null && (
+                                    <span>5h {Math.round(overview.currentAccount.windows['5h'].gemini)}%</span>
+                                )}
+                                {overview.currentAccount.windows['weekly'].gemini !== null && (
+                                    <span>
+                                        · 周 {Math.round(overview.currentAccount.windows['weekly'].gemini)}%
+                                        {overview.currentAccount.windows['weekly'].geminiRemaining !== null && (
+                                            <span className="text-[9px] font-normal text-gray-400 dark:text-gray-500"> (剩{Math.round(overview.currentAccount.windows['weekly'].geminiRemaining)}%)</span>
+                                        )}
+                                    </span>
+                                )}
+                                {overview.currentAccount.windows['weekly'].other !== null && (
+                                    <span className="text-purple-600 dark:text-purple-400">
+                                        · Claude {Math.round(overview.currentAccount.windows['weekly'].other)}%
+                                    </span>
+                                )}
+                            </div>
                         </div>
                     </div>
                 )}
                 {(['5h', 'weekly', ...(overview?.argonWeekly.total ? ['argon' as const] : [])] as const).map(window => {
                     const used = (window === 'argon' ? overview?.argonWeekly.used : overview?.windows[window].used) ?? null;
-                    const label = (window === 'argon' ? t('local_dashboard.quota_used_argon') : window === '5h' ? '全账号均值 5小时' : '全账号均值 每周');
+                    const label = (window === 'argon'
+                        ? t('local_dashboard.quota_used_argon')
+                        : window === '5h'
+                            ? t('local_dashboard.quota_mean_5h', '全账号均值 5小时')
+                            : t('local_dashboard.quota_mean_weekly', '全账号均值 每周'));
                     const tone = quotaTone(used === null ? null : 100 - used, quotaPreferences);
                     const fill = { healthy: 'bg-emerald-500', warning: 'bg-amber-500', critical: 'bg-red-500', unknown: '' }[tone];
                     return <div key={window} data-quota-window={window}>
