@@ -18,6 +18,7 @@ const {
   compactQuotaGroups,
   weeklyQuotaItems,
   poolQuotaItems,
+  mergedQuotaItems,
   observedPercentage,
   observedModelPercentage,
   effectiveModelQuota,
@@ -120,6 +121,40 @@ test('pool quota items symmetrically extract both Gemini and Claude pools across
   assert.equal(itemsWeekly[0].percentage, 73);
   assert.equal(itemsWeekly[1].title, 'Claude / GPT');
   assert.equal(itemsWeekly[1].percentage, 100);
+});
+test('merged quota items defaults to Gemini 5H and 7D only, and expands on Claude when pinned', () => {
+  const q = {
+    quota_groups: [
+      {
+        display_name: 'Gemini Models',
+        buckets: [
+          { bucket_id: 'gemini-5h', window: '5h', remaining_fraction: 1, remaining_fraction_known: true, reset_time: '2026-11-09T15:00:00Z' },
+          { bucket_id: 'gemini-weekly', window: 'weekly', remaining_fraction: 0.73, remaining_fraction_known: true, reset_time: '2026-11-14T00:00:00Z' },
+        ],
+      },
+      {
+        display_name: 'Claude and GPT models',
+        buckets: [
+          { bucket_id: '3p-5h', window: '5h', remaining_fraction: 0.8, remaining_fraction_known: true, reset_time: '2026-11-09T15:00:00Z' },
+          { bucket_id: '3p-weekly', window: 'weekly', remaining_fraction: 1, remaining_fraction_known: true, reset_time: '2026-11-16T00:00:00Z' },
+        ],
+      },
+    ],
+  };
+
+  const defaultItems = mergedQuotaItems(q, ['gemini-3.8-flash']);
+  assert.equal(defaultItems.length, 2);
+  assert.equal(defaultItems[0].title, 'Gemini 5H');
+  assert.equal(defaultItems[0].percentage, 100);
+  assert.equal(defaultItems[1].title, 'Gemini 7D');
+  assert.equal(defaultItems[1].percentage, 73);
+
+  const withClaudeItems = mergedQuotaItems(q, ['gemini-3.8-flash', 'claude-sonnet-4-6']);
+  assert.equal(withClaudeItems.length, 4);
+  assert.equal(withClaudeItems[0].title, 'Gemini 5H');
+  assert.equal(withClaudeItems[1].title, 'Gemini 7D');
+  assert.equal(withClaudeItems[2].title, 'Claude 5H');
+  assert.equal(withClaudeItems[3].title, 'Claude 7D');
 });
 test('unknown fused model quota cannot expose an old percentage', () => {
   assert.equal(observedModelPercentage({name:'gemini-4-argon-high',percentage:100,percentage_known:false,reset_time:''}),null);

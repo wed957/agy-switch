@@ -275,6 +275,7 @@
     "table": {
       "email": "Email",
       "quota": "Model Quota",
+      "quota_combined": "Quota (5H / 7D)",
       "quota_5h": "5-Hour Quota",
       "weekly_quota": "Weekly Quota",
       "last_used": "Last Used",

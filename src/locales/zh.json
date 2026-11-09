@@ -275,6 +275,7 @@
     "table": {
       "email": "邮箱",
       "quota": "模型配额",
+      "quota_combined": "配额 (5H / 7D)",
       "quota_5h": "5小时配额",
       "weekly_quota": "周配额",
       "last_used": "最后使用",

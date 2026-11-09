@@ -34,6 +34,111 @@ export function weeklyQuotaItems(quota?: QuotaData) {
   return poolQuotaItems(quota, 'weekly');
 }
 
+export interface MergedQuotaItem {
+  id: string;
+  title: string;
+  poolBadge: string;
+  shared: boolean;
+  isClaude: boolean;
+  percentage: number | null;
+  resetTime?: string;
+}
+
+/**
+ * 合并 5H 和 7D 周配额展示项
+ * 默认只展示 Gemini 5H / 7D
+ * 若用户设置中配置了非 Gemini 模型（如 Claude/GPT），才追加对应展示
+ */
+export function mergedQuotaItems(quota?: QuotaData, pinnedModels?: string[]): MergedQuotaItem[] {
+  const groups = quota?.quota_groups || [];
+  if (!groups.length) return [];
+
+  const includeClaude = (pinnedModels || []).some(m => {
+    const lower = m.toLowerCase();
+    return lower.includes('claude') || lower.includes('gpt') || lower.includes('opus') || lower.includes('sonnet');
+  });
+  const includeArgon = (pinnedModels || []).some(m => m.toLowerCase().includes('argon'));
+
+  const items: MergedQuotaItem[] = [];
+
+  for (const group of groups) {
+    for (const b of group.buckets || []) {
+      const kind = quotaPoolKind(b.bucket_id, group.display_name);
+      const is5h = b.window.trim().toLowerCase() === '5h' || b.bucket_id.toLowerCase().endsWith('-5h');
+      const isWeekly = b.window.trim().toLowerCase() === 'weekly' || b.bucket_id.toLowerCase().endsWith('-weekly');
+
+      if (kind === 'gemini') {
+        if (is5h) {
+          items.push({
+            id: `${group.display_name}-${b.bucket_id}-5h`,
+            title: 'Gemini 5H',
+            poolBadge: '共享池',
+            shared: true,
+            isClaude: false,
+            percentage: observedPercentage(b.remaining_fraction, b.remaining_fraction_known, true),
+            resetTime: b.reset_time,
+          });
+        } else if (isWeekly) {
+          items.push({
+            id: `${group.display_name}-${b.bucket_id}-weekly`,
+            title: 'Gemini 7D',
+            poolBadge: '共享池',
+            shared: true,
+            isClaude: false,
+            percentage: observedPercentage(b.remaining_fraction, b.remaining_fraction_known, true),
+            resetTime: b.reset_time,
+          });
+        }
+      } else if (kind === 'other' && includeClaude) {
+        if (is5h) {
+          items.push({
+            id: `${group.display_name}-${b.bucket_id}-5h`,
+            title: 'Claude 5H',
+            poolBadge: '共享池',
+            shared: true,
+            isClaude: true,
+            percentage: observedPercentage(b.remaining_fraction, b.remaining_fraction_known, true),
+            resetTime: b.reset_time,
+          });
+        } else if (isWeekly) {
+          items.push({
+            id: `${group.display_name}-${b.bucket_id}-weekly`,
+            title: 'Claude 7D',
+            poolBadge: '共享池',
+            shared: true,
+            isClaude: true,
+            percentage: observedPercentage(b.remaining_fraction, b.remaining_fraction_known, true),
+            resetTime: b.reset_time,
+          });
+        }
+      } else if (kind === 'argon' && includeArgon) {
+        if (isWeekly) {
+          items.push({
+            id: `${group.display_name}-${b.bucket_id}-weekly`,
+            title: 'Gemini 4 Argon',
+            poolBadge: '独立池',
+            shared: false,
+            isClaude: false,
+            percentage: observedPercentage(b.remaining_fraction, b.remaining_fraction_known, true),
+            resetTime: b.reset_time,
+          });
+        }
+      }
+    }
+  }
+
+  return items.sort((a, b) => {
+    const weight = (title: string) => {
+      if (title === 'Gemini 5H') return 1;
+      if (title === 'Gemini 7D') return 2;
+      if (title === 'Claude 5H') return 3;
+      if (title === 'Claude 7D') return 4;
+      return 5;
+    };
+    return weight(a.title) - weight(b.title);
+  });
+}
+
 export interface CompactQuotaRow {
   id: string;
   label: string;

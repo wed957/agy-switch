@@ -1,4 +1,4 @@
-import { poolQuotaItems, modelQuotaForWindow } from '../../utils/menuBarQuota';
+import { mergedQuotaItems, modelQuotaForWindow } from '../../utils/menuBarQuota';
 /**
  * 账号表格组件
  * 支持拖拽排序功能，用户可以通过拖拽行来调整账号顺序
@@ -142,9 +142,9 @@ function isModelProtected(protectedModels: string[] | undefined, modelName: stri
  * 提取账号的最快配额重置时间（毫秒时间戳）
  * 用于表格排序
  */
-function extractAccountResetTime(account: Account, quotaWindow?: '5h' | 'weekly'): number | null {
+function extractAccountResetTime(account: Account, pinnedModels?: string[]): number | null {
     let earliestTime: number | null = null;
-    const items = poolQuotaItems(account.quota, quotaWindow || '5h');
+    const items = mergedQuotaItems(account.quota, pinnedModels);
     if (items.length > 0) {
         for (const item of items) {
             if (item.resetTime) {
@@ -160,7 +160,7 @@ function extractAccountResetTime(account: Account, quotaWindow?: '5h' | 'weekly'
     // fallback 到单模型模式
     const models = account.quota?.models || [];
     for (const model of models) {
-        const { resetTime } = modelQuotaForWindow(model, account.quota, quotaWindow);
+        const { resetTime } = modelQuotaForWindow(model, account.quota);
         if (resetTime) {
             const t = new Date(resetTime).getTime();
             if (!isNaN(t) && (earliestTime === null || t < earliestTime)) {
@@ -294,14 +294,13 @@ function AccountRowContent({
     const { config } = useConfigStore();
     const validationBlockedLabel = getValidationBlockedStatusLabel(account.validation_blocked_reason, t);
 
-    // 解析统一配额池项 (无论 5h 还是 weekly，保持双池对称对齐展示)
-    const poolItems = useMemo(() => {
-        const window = quotaWindow || '5h';
-        return poolQuotaItems(account.quota, window).map(item => ({ ...item,
+    // 合并展示 5H 与 7D 配额 (默认只显示 Gemini 5h/7d)
+    const quotaItems = useMemo(() => {
+        return mergedQuotaItems(account.quota, config?.pinned_quota_models?.models).map(item => ({ ...item,
             poolBadge: item.shared ? t('accounts.shared_pool') : t('accounts.dedicated_pool'),
             Icon: item.isClaude ? BrainCircuit : Sparkles,
         }));
-    }, [quotaWindow, account.quota?.quota_groups, t]);
+    }, [account.quota?.quota_groups, config?.pinned_quota_models?.models, t]);
 
     // 获取统一解析后的展示模型列表 (严格对齐用户自定义勾选)
     const displayModels = useMemo(() => {
@@ -416,8 +415,8 @@ function AccountRowContent({
                     </div>
                 ) : (
                     <div className="flex flex-col gap-1.5 py-0.5 w-full">
-                        {poolItems.length > 0 ? (
-                            poolItems.map((item) => (
+                        {quotaItems.length > 0 ? (
+                            quotaItems.map((item) => (
                                 <QuotaItem
                                     key={item.id}
                                     label={
@@ -561,6 +560,7 @@ function AccountTable({
     quotaWindow,
 }: AccountTableProps) {
     const { t } = useTranslation();
+    const { config } = useConfigStore();
 
     const [activeId, setActiveId] = useState<string | null>(null);
     // 排序状态配置: 支持按配额重置时间 (reset_time) 或最后使用时间 (last_used) 排序
@@ -592,8 +592,8 @@ function AccountTable({
 
         return [...accounts].sort((a, b) => {
             if (sortConfig.key === 'reset_time') {
-                const timeA = extractAccountResetTime(a, quotaWindow);
-                const timeB = extractAccountResetTime(b, quotaWindow);
+                const timeA = extractAccountResetTime(a, config?.pinned_quota_models?.models);
+                const timeB = extractAccountResetTime(b, config?.pinned_quota_models?.models);
 
                 // 没有 reset_time 的排到后面
                 if (timeA === null && timeB === null) return 0;
@@ -690,7 +690,7 @@ function AccountTable({
                                     )}
                                     title={t('accounts.table.sort_by_reset_time', '点击按配额重置时间排序')}
                                 >
-                                    <span>{quotaWindow === 'weekly' ? t('accounts.table.weekly_quota', '周配额') : t('accounts.table.quota_5h', '5小时配额')}</span>
+                                    <span>{t('accounts.table.quota_combined', '配额 (5H / 7D)')}</span>
                                     {sortConfig.key === 'reset_time' ? (
                                         sortConfig.direction === 'asc' ? <ArrowUp className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" /> : <ArrowDown className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
                                     ) : (

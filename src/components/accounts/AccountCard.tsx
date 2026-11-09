@@ -1,4 +1,4 @@
-import { poolQuotaItems, modelQuotaForWindow } from '../../utils/menuBarQuota';
+import { mergedQuotaItems, modelQuotaForWindow } from '../../utils/menuBarQuota';
 import { useMemo } from 'react';
 import { Download, ArrowRightLeft, RefreshCw, Trash2, Lock, Ban, Diamond, Gem, Circle, Sparkles, Tag, Clock, GripVertical, BrainCircuit, CheckCircle2 } from 'lucide-react';
 import { Account } from '../../types/account';
@@ -60,14 +60,13 @@ function AccountCard({
         return getDisplayQuotaModels(account.quota?.models, config?.pinned_quota_models?.models);
     }, [config?.pinned_quota_models?.models, account.quota?.models]);
 
-    // 解析统一配额池项 (无论 5h 还是 weekly，保持双池对称对齐展示)
-    const poolItems = useMemo(() => {
-        const window = quotaWindow || '5h';
-        return poolQuotaItems(account.quota, window).map(item => ({ ...item,
+    // 合并展示 5H 与 7D 配额 (默认只显示 Gemini 5h/7d)
+    const quotaItems = useMemo(() => {
+        return mergedQuotaItems(account.quota, config?.pinned_quota_models?.models).map(item => ({ ...item,
             poolBadge: item.shared ? t('accounts.shared_pool') : t('accounts.dedicated_pool'),
             Icon: item.isClaude ? BrainCircuit : Sparkles,
         }));
-    }, [quotaWindow, account.quota?.quota_groups, t]);
+    }, [account.quota?.quota_groups, config?.pinned_quota_models?.models, t]);
 
     const isModelProtected = (key?: string) => {
         if (!config?.quota_protection?.enabled) return false;
@@ -203,9 +202,9 @@ function AccountCard({
                             </span>
                         </div>
                     </div>
-                ) : poolItems.length > 0 ? (
+                ) : quotaItems.length > 0 ? (
                     <div className="grid grid-cols-1 gap-2 content-start my-auto">
-                        {poolItems.map((item) => (
+                        {quotaItems.map((item) => (
                             <QuotaItem
                                 key={item.id}
                                 label={
