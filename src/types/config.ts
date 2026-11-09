@@ -5,7 +5,7 @@ export interface DesktopPreferences {
 }
 
 export type MenuBarQuotaScope = 'all' | 'gemini' | 'other';
-export const DASHBOARD_CARD_IDS = ['total_tokens', 'input_tokens', 'output_tokens', 'cache_hit_rate', 'api_cost', 'first_text_latency', 'body_speed', 'account_status', 'aggregate_quota', 'average_input'] as const;
+export const DASHBOARD_CARD_IDS = ['total_tokens', 'input_tokens', 'output_tokens', 'cache_hit_rate', 'api_cost', 'first_text_latency', 'body_speed', 'account_status', 'average_input'] as const;
 export type DashboardCardId = typeof DASHBOARD_CARD_IDS[number];
 export interface DashboardPreferences { cards: DashboardCardId[]; order?: DashboardCardId[]; }
 export function dashboardCards(cards: unknown): DashboardCardId[] {

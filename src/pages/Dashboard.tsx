@@ -8,7 +8,6 @@ import { useConfigStore } from '../stores/useConfigStore';
 import { dashboardCards, dashboardGridClass, DEFAULT_MENU_BAR_PREFERENCES, type DashboardCardId } from '../types/config';
 import { dashboardOverview } from '../utils/dashboardOverview';
 import { averageRequestInput } from '../utils/dashboardUsage';
-import { quotaDisplay, quotaTone } from '../utils/menuBarOverview';
 import { useDashboardOverview } from '../hooks/useDashboardOverview';
 
 interface LocalTokenTotals {
@@ -308,7 +307,7 @@ function TokenCard({
 function Dashboard() {
     const config = useConfigStore(state => state.config);
     const visibleCards = dashboardCards(config?.dashboard?.cards);
-    const accountData = useDashboardOverview(Boolean(config) && visibleCards.some(id => ['account_status', 'aggregate_quota'].includes(id)));
+    const accountData = useDashboardOverview(Boolean(config) && visibleCards.includes('account_status'));
     const { t, i18n } = useTranslation();
     const locale = i18n.resolvedLanguage === 'zh' ? 'zh-CN' : 'en-US';
     const quotaPreferences = useMemo(() => ({ ...DEFAULT_MENU_BAR_PREFERENCES, ...config?.menu_bar }), [config?.menu_bar]);
@@ -649,81 +648,6 @@ function Dashboard() {
             icon={Users}
             locale={locale}
         />),
-        aggregate_quota: (<TokenCard cardId="aggregate_quota"
-            label={t('local_dashboard.aggregate_quota')}
-            value={0}
-            detail={null}
-            hint={`${t('local_dashboard.quota_scope_hint', { scope: quotaScope })}\n${t('local_dashboard.quota_used_hint')}\n${overview ? t('local_dashboard.quota_coverage', {
-                session: overview.windows['5h'].covered, weekly: overview.windows.weekly.covered, total: overview.windows['5h'].total,
-            }) : overviewUnavailable}`}
-            color="bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-300"
-            icon={PieChart}
-            locale={locale}
-        >
-            <div className="space-y-1">
-                {overview?.currentAccount && (
-                    <div
-                        className="rounded-lg bg-gray-50/80 dark:bg-base-200/60 border border-gray-100 dark:border-base-200/80 px-2 py-1 text-[10px] text-gray-700 dark:text-gray-300 transition-colors"
-                        title={(() => {
-                            const acc = overview.currentAccount;
-                            const parts = [`当前账号: ${acc.email || ''}`];
-                            if (acc.windows['5h'].gemini !== null) {
-                                parts.push(`Gemini: 5h已用 ${Math.round(acc.windows['5h'].gemini)}% (剩 ${Math.round(acc.windows['5h'].geminiRemaining ?? (100 - acc.windows['5h'].gemini))}%), 周已用 ${acc.windows['weekly'].gemini !== null ? Math.round(acc.windows['weekly'].gemini) : 0}% (剩 ${Math.round(acc.windows['weekly'].geminiRemaining ?? 0)}%)`);
-                            }
-                            if (acc.windows['weekly'].other !== null) {
-                                parts.push(`Claude / GPT: 周已用 ${Math.round(acc.windows['weekly'].other)}% (剩 ${Math.round(acc.windows['weekly'].otherRemaining ?? (100 - acc.windows['weekly'].other))}%)`);
-                            }
-                            return parts.join('\n');
-                        })()}
-                    >
-                        <div className="flex justify-between items-center font-medium gap-1">
-                            <span className="truncate text-gray-500 dark:text-gray-400">{t('local_dashboard.current_account_used', '当前账号已用')}:</span>
-                            <div className="flex items-center gap-1.5 shrink-0 tabular-nums font-semibold text-gray-900 dark:text-base-content">
-                                {overview.currentAccount.windows['5h'].gemini !== null && (
-                                    <span>5h {Math.round(overview.currentAccount.windows['5h'].gemini)}%</span>
-                                )}
-                                {overview.currentAccount.windows['weekly'].gemini !== null && (
-                                    <span>
-                                        · 周 {Math.round(overview.currentAccount.windows['weekly'].gemini)}%
-                                        {overview.currentAccount.windows['weekly'].geminiRemaining !== null && (
-                                            <span className="text-[9px] font-normal text-gray-400 dark:text-gray-500"> (剩{Math.round(overview.currentAccount.windows['weekly'].geminiRemaining)}%)</span>
-                                        )}
-                                    </span>
-                                )}
-                                {overview.currentAccount.windows['weekly'].other !== null && (
-                                    <span className="text-purple-600 dark:text-purple-400">
-                                        · Claude {Math.round(overview.currentAccount.windows['weekly'].other)}%
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                )}
-                {(['5h', 'weekly', ...(overview?.argonWeekly.total ? ['argon' as const] : [])] as const).map(window => {
-                    const used = (window === 'argon' ? overview?.argonWeekly.used : overview?.windows[window].used) ?? null;
-                    const label = (window === 'argon'
-                        ? t('local_dashboard.quota_used_argon')
-                        : window === '5h'
-                            ? t('local_dashboard.quota_mean_5h', '全账号均值 5小时')
-                            : t('local_dashboard.quota_mean_weekly', '全账号均值 每周'));
-                    const tone = quotaTone(used === null ? null : 100 - used, quotaPreferences);
-                    const fill = { healthy: 'bg-emerald-500', warning: 'bg-amber-500', critical: 'bg-red-500', unknown: '' }[tone];
-                    return <div key={window} data-quota-window={window}>
-                        <div className="flex flex-wrap items-baseline justify-between gap-x-2">
-                            <span className="text-[11px] leading-4 text-gray-600 dark:text-gray-300">{label}</span>
-                            <span className="text-xs font-semibold leading-4 tabular-nums text-gray-900 dark:text-base-content">{quotaDisplay(used)}</span>
-                        </div>
-                        <div className="mt-0.5 h-1 overflow-hidden rounded-full bg-gray-100 text-gray-400 dark:bg-base-300 dark:text-gray-500"
-                            role={used === null ? 'img' : 'meter'} aria-label={used === null ? `${label}: ${overviewUnavailable}` : label}
-                            aria-valuemin={used === null ? undefined : 0} aria-valuemax={used === null ? undefined : 100}
-                            aria-valuenow={used ?? undefined} aria-valuetext={used === null ? undefined : quotaDisplay(used)}>
-                            {used === null ? <span className="block h-full opacity-30" style={{ backgroundImage: 'repeating-linear-gradient(135deg, transparent 0px, transparent 3px, currentColor 3px, currentColor 4px)' }} />
-                                : <span className={`block h-full rounded-full ${fill}`} style={{ width: `${used}%` }} />}
-                        </div>
-                    </div>;
-                })}
-            </div>
-        </TokenCard>),
         average_input: (<TokenCard cardId="average_input"
             label={t('local_dashboard.average_input')}
             value={averageInput ?? 0}

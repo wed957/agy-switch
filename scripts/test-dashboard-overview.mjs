@@ -21,21 +21,21 @@ test('full option order preserves hidden positions and migrates legacy selection
     const selected = ['body_speed', 'total_tokens'];
     const migrated = dashboardCardOrder(selected);
     assert.deepEqual(migrated.slice(0, 2), selected);
-    assert.equal(migrated.length, 10);
+    assert.equal(migrated.length, 9);
     assert.deepEqual(dashboardCardOrder([], migrated), migrated);
     assert.deepEqual(dashboardCardOrder(['api_cost'], migrated), migrated);
     assert.deepEqual(dashboardCardOrder(selected, ['unknown']), migrated);
     const aliases = dashboardCardOrder([], ['quota_reset', 'average_input', 'unknown', 'api_cost']);
     assert.deepEqual(aliases.slice(0, 2), ['average_input', 'api_cost']);
-    assert.equal(aliases.length, 10);
+    assert.equal(aliases.length, 9);
 });
-test('ten-card catalog retains explicit five-card order, empty selection and deduplication', () => {
-    assert.equal(DASHBOARD_CARD_IDS.length, 10);
+test('nine-card catalog retains explicit five-card order, empty selection and deduplication', () => {
+    assert.equal(DASHBOARD_CARD_IDS.length, 9);
     const saved = ['body_speed', 'api_cost', 'total_tokens', 'first_text_latency', 'cache_hit_rate'];
     assert.deepEqual(dashboardCards(saved), saved); assert.deepEqual(dashboardCards([]), []);
-    assert.deepEqual(dashboardCards(['quota_reset', 'average_input', 'bad', 'aggregate_quota', 'account_status']), ['average_input', 'aggregate_quota', 'account_status']);
-    assert.equal(dashboardCards(undefined).length, 10);
-    for (const count of [5, 6, 7, 8, 9, 10]) assert.match(dashboardGridClass(count), /lg:grid-cols-5/);
+    assert.deepEqual(dashboardCards(['quota_reset', 'average_input', 'bad', 'account_status']), ['average_input', 'account_status']);
+    assert.equal(dashboardCards(undefined).length, 9);
+    for (const count of [5, 6, 7, 8, 9]) assert.match(dashboardGridClass(count), /lg:grid-cols-5/);
 });
 test('account status covers known usable, disabled, exhausted and unknown accounts', () => {
     const result = project(makeDashboardSnapshot(now));

@@ -44,9 +44,9 @@ impl NetworkPreferences {
 }
 
 /// Stable card identifiers used by the homepage and settings editor.
-const DEFAULT_DASHBOARD_CARDS: [&str; 10] = [
+const DEFAULT_DASHBOARD_CARDS: [&str; 9] = [
     "total_tokens", "input_tokens", "output_tokens", "cache_hit_rate", "api_cost",
-    "first_text_latency", "body_speed", "account_status", "aggregate_quota", "average_input",
+    "first_text_latency", "body_speed", "account_status", "average_input",
 ];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -264,7 +264,7 @@ mod tests {
     #[test]
     fn legacy_dashboard_defaults_to_all_cards_without_overriding_empty_selection() {
         let old: AppConfig = serde_json::from_str(r#"{"language":"zh"}"#).unwrap();
-        assert_eq!(old.dashboard.cards.len(), 10);
+        assert_eq!(old.dashboard.cards.len(), 9);
         let empty: AppConfig = serde_json::from_str(r#"{"dashboard":{"cards":[]}}"#).unwrap();
         assert!(empty.dashboard.cards.is_empty());
         let restored: AppConfig = serde_json::from_str(&serde_json::to_string(&empty).unwrap()).unwrap();
@@ -276,11 +276,11 @@ mod tests {
         let mut config: AppConfig = serde_json::from_str(r#"{"dashboard":{"cards":["total_tokens","cache_hit_rate","first_text_latency","body_speed","api_cost"]}}"#).unwrap();
         config.dashboard.normalize();
         assert_eq!(config.dashboard.cards, ["total_tokens", "cache_hit_rate", "first_text_latency", "body_speed", "api_cost"]);
-        config.dashboard.cards = ["quota_reset", "account_status", "aggregate_quota", "average_input", "unknown"].map(String::from).to_vec();
+        config.dashboard.cards = ["quota_reset", "account_status", "average_input", "unknown"].map(String::from).to_vec();
         config.dashboard.order.clear();
         config.dashboard.normalize();
-        assert_eq!(config.dashboard.cards, ["average_input", "account_status", "aggregate_quota"]);
-        assert_eq!(config.dashboard.order.len(), 10);
+        assert_eq!(config.dashboard.cards, ["average_input", "account_status"]);
+        assert_eq!(config.dashboard.order.len(), 9);
     }
 
     #[test]
