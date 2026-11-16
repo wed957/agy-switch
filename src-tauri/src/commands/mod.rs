@@ -548,7 +548,11 @@ pub(crate) async fn sync_account_from_db_internal(app: tauri::AppHandle) -> Resu
             modules::account::load_account(&active.id)?
         }
         modules::migration::CurrentIdentity::Credentials(state) => {
-            modules::migration::import_observed_oauth_state(state).await?
+            let identity = modules::migration::CurrentIdentity::Credentials(state);
+            match modules::account::list_accounts()?.into_iter().find(|a| identity.matches(a)) {
+                Some(existing) => existing,
+                None => return Ok(None),
+            }
         }
     };
 
